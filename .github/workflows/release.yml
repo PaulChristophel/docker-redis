@@ -2,7 +2,7 @@ name: Build and publish Redis images
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '*.dockerfile'
       - '*.sh'

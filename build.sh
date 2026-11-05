@@ -2,39 +2,20 @@
 set -eu
 jobs=${BUILD_JOBS:-4}
 
-# Let Redis establish its saved settings and build the other dependencies first.
-# LLVM tools are also on PATH under their conventional names: jemalloc's
-# generated namespace discovery must be able to inspect LLVM bitcode with nm.
-make -C src persist-settings \
-    CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
-    MALLOC=jemalloc BUILD_TLS=yes USE_SYSTEMD=no \
-    ENABLE_LTO=-flto LDFLAGS=-fuse-ld=lld
-
-# Reproduce the separately validated jemalloc configuration explicitly.
-(
-    cd deps/jemalloc
-    make distclean
-    CC=clang AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
-        CFLAGS='-O3 -flto' LDFLAGS='-flto -fuse-ld=lld' \
-        ./configure --disable-cxx --with-version=5.3.0-0-g0 \
-        --with-lg-quantum=3 --disable-cache-oblivious \
-        --with-jemalloc-prefix=je_
-    make -j"${jobs}" lib/libjemalloc.a
-    llvm-nm --defined-only lib/libjemalloc.a > /tmp/jemalloc-symbols
-    for symbol in malloc_with_usize calloc_with_usize realloc_with_usize free_with_usize get_defrag_hint; do
-        grep -Eq " T je_${symbol}$" /tmp/jemalloc-symbols
-    done
-)
-
-# Force a relink against the independently checked archive, preserving settings.
-rm -f src/redis-server src/redis-sentinel src/redis-check-rdb src/redis-check-aof
+# Build Redis core and its bundled dependencies once. Conventional LLVM tool
+# aliases on PATH also cover jemalloc's internal bitcode symbol discovery.
 make -C src -j"${jobs}" all \
     CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
     MALLOC=jemalloc BUILD_TLS=yes USE_SYSTEMD=no \
     ENABLE_LTO=-flto LDFLAGS=-fuse-ld=lld
 
-# Keep the manifest's portable ARM atomics setting and committed Rust headers.
-make -j"${jobs}" \
+llvm-nm --defined-only deps/jemalloc/lib/libjemalloc.a > /tmp/jemalloc-symbols
+for symbol in malloc_with_usize calloc_with_usize realloc_with_usize free_with_usize get_defrag_hint; do
+    grep -Eq " T je_${symbol}$" /tmp/jemalloc-symbols
+done
+
+# Use the module-only entry point: top-level make would enter core again.
+make -C modules -j"${jobs}" all \
     CC=clang CXX=clang++ LD=lld AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
     MALLOC=jemalloc BUILD_TLS=yes USE_SYSTEMD=no ENABLE_LTO=-flto \
     LDFLAGS=-fuse-ld=lld LTO=1 IGNORE_MISSING_DEPS=1 \
@@ -45,8 +26,7 @@ for module in redisbloom/redisbloom redisearch/redisearch redisjson/rejson redis
     test -s "modules/${module}.so"
 done
 
-# Upstream test suites are build gates; smoke tests below cover the reduced
-# filesystem and the four production modules, which make test does not load.
+# The TCP and TLS suites are separate test runs against the same build.
 make -C src test \
     CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
     MALLOC=jemalloc BUILD_TLS=yes USE_SYSTEMD=no \

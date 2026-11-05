@@ -65,6 +65,21 @@ CXX
 clang++ -O3 -flto -fuse-ld=lld -pthread -fopenmp "$probe_dir/cxx.cpp" -o "$probe_dir/cxx"
 "$probe_dir/cxx"
 
+# openSUSE's libdispatch-devel provides Block.h in /usr/include/block.
+cat > "$probe_dir/blocks.c" <<'C'
+#include <Block.h>
+int main(void) {
+    int value = 42;
+    int (^block)(void) = Block_copy(^{ return value; });
+    int result = block();
+    Block_release(block);
+    return result != 42;
+}
+C
+clang -O3 -flto -fuse-ld=lld -fblocks "$probe_dir/blocks.c" \
+    -lBlocksRuntime -o "$probe_dir/blocks"
+"$probe_dir/blocks"
+
 # Exercise an actual Rust/C LTO link, not just compiler version strings.
 printf 'int dependency_probe(void) { return 42; }\n' > "$probe_dir/probe.c"
 clang -O3 -flto -c "$probe_dir/probe.c" -o "$probe_dir/probe.o"

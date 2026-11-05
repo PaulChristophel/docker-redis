@@ -35,17 +35,17 @@ The builder selects Clang/LLVM matching the installed Rust compiler's LLVM major
 LLVM `nm`, `ar`, and `ranlib` are also exposed under their conventional names on
 PATH, for nested build scripts that do not honor the corresponding variables.
 No jemalloc source patch or symbol-renaming compiler defines are applied. The
-explicit jemalloc configure/build step verifies the five Redis extension symbols
-before linking Redis. Configure detects the target platform; no CPU-specific
+single core build uses the upstream jemalloc configuration and verifies its five
+Redis extension symbols before building the modules separately. Configure detects the target platform; no CPU-specific
 compiler flags or fixed page-size overrides are added. Redis and jemalloc use
 `-O3 -flto`; RediSearch's CMake RelWithDebInfo optimization is explicitly `-O3`.
 On an ARM Mac, the amd64 build requires Podman's x86-64 emulation support and
 will generally take longer than a native build.
 
 The `build-dependencies` stage validates all required commands, Python/Tcl TLS,
-OpenSSL/libcrypt and OpenMP C/C++ linking, libclang loading, and an actual Rust/C
+OpenSSL/libcrypt, OpenMP, and BlocksRuntime C/C++ linking, libclang loading, and Rust/C
 LTO link before compiling Redis or its modules. Explicit development dependencies
-include `clang<LLVM-major>-devel`, `libffi-devel`, `libxcrypt-devel`, and the
+include `clang<LLVM-major>-devel`, `libdispatch-devel`, `libffi-devel`, `libxcrypt-devel`, and the
 Tumbleweed `zlib-ng-compat-devel` provider.
 
 Build gates include upstream `make -C src test`, `./runtest --tls`, and a smoke
@@ -112,3 +112,10 @@ container=$(podman create docker.io/pcm0/redis:8.10.3-tumbleweed)
 podman cp "$container:/usr/share/redis/runtime-packages.txt" ./runtime-packages.txt
 podman rm "$container"
 ```
+
+The Blocks header is supplied by `libdispatch-devel` at `/usr/include/block/Block.h`.
+`CPATH=/usr/include/block` makes it visible to nested Clang builds. Runtime
+Blocks libraries are selected automatically by the ELF/RPM dependency scan.
+RediSearch still prints its unsupported-openSUSE warning: its upstream package
+checker does not recognize Tumbleweed, so the build uses the independently
+checked toolchain with `IGNORE_MISSING_DEPS=1`.

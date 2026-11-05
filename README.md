@@ -114,7 +114,9 @@ podman rm "$container"
 ```
 
 The Blocks header is supplied by `libdispatch-devel` at `/usr/include/block/Block.h`.
-`CPATH=/usr/include/block` makes it visible to nested Clang builds. Runtime
+`CPATH=/usr/include/block` makes it visible to nested Clang builds. RedisBloom
+is built with Readies `CC_FLAGS.opt=-O3 -flto -fblocks` and
+`LD_LIBS.ext=BlocksRuntime`; these flags are scoped to that module. Runtime
 Blocks libraries are selected automatically by the ELF/RPM dependency scan.
 RediSearch still prints its unsupported-openSUSE warning: its upstream package
 checker does not recognize Tumbleweed, so the build uses the independently

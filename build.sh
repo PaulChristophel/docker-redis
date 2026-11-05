@@ -14,13 +14,25 @@ for symbol in malloc_with_usize calloc_with_usize realloc_with_usize free_with_u
     grep -Eq " T je_${symbol}$" /tmp/jemalloc-symbols
 done
 
-# Use the module-only entry point: top-level make would enter core again.
-make -C modules -j"${jobs}" all \
+# Keep module-specific flags out of the core and the other module toolchains.
+build_module() {
+    module=$1
+    shift
+    make -C modules -j"${jobs}" all SUBDIRS="$module" \
     CC=clang CXX=clang++ LD=lld AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
     MALLOC=jemalloc BUILD_TLS=yes USE_SYSTEMD=no ENABLE_LTO=-flto \
     LDFLAGS=-fuse-ld=lld LTO=1 IGNORE_MISSING_DEPS=1 \
     REDISEARCH_GENERATE_HEADERS=0 INLINE_LSE_ATOMICS=0 \
-    CMAKE_ARGS='-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3'
+    CMAKE_ARGS='-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3' \
+    "$@"
+}
+
+# Readies builds CC_FLAGS from its own components; setting CFLAGS alone does not
+# enable Blocks. Preserve its includes/defines and extend the library set.
+build_module redisbloom 'CC_FLAGS.opt=-O3 -flto -fblocks' LD_LIBS.ext=BlocksRuntime
+for module in redisearch redisjson redistimeseries; do
+    build_module "$module"
+done
 
 for module in redisbloom/redisbloom redisearch/redisearch redisjson/rejson redistimeseries/redistimeseries; do
     test -s "modules/${module}.so"

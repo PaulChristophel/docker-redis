@@ -45,6 +45,9 @@ jobs:
     name: Redis ${{ matrix.redis.version }} ${{ matrix.variant.tag }}
     needs: prepare
     runs-on: ubuntu-latest
+    env:
+      DOCKER_CONFIG: ${{ runner.temp }}/redis-registry-auth
+      REGISTRY_AUTH_FILE: ${{ runner.temp }}/redis-registry-auth/config.json
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -53,7 +56,11 @@ jobs:
       - name: Log in to Docker Hub
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: printf '%s' "$DOCKERHUB_TOKEN" | podman login docker.io --username pcm0 --password-stdin
+        run: |
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '%s' "$DOCKERHUB_TOKEN" | podman login \
+            --compat-auth-file "$REGISTRY_AUTH_FILE" \
+            docker.io --username pcm0 --password-stdin
       - name: Build and test image
         env:
           REDIS_VERSION: ${{ matrix.redis.version }}
@@ -66,9 +73,47 @@ jobs:
         run: |
           podman push --digestfile image-digest.txt "$IMAGE"
           echo "digest=$(cat image-digest.txt)" >> "$GITHUB_OUTPUT"
+      - name: Save published image digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-digest-${{ matrix.redis.version }}-${{ matrix.variant.tag }}
+          path: image-digest.txt
+          if-no-files-found: error
+
+  attest:
+    name: Attest Redis ${{ matrix.redis.version }} ${{ matrix.variant.tag }}
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_CONFIG: ${{ runner.temp }}/redis-registry-auth
+      REGISTRY_AUTH_FILE: ${{ runner.temp }}/redis-registry-auth/config.json
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Download published image digest
+        uses: actions/download-artifact@v4
+        with:
+          name: image-digest-${{ matrix.redis.version }}-${{ matrix.variant.tag }}
+          path: published-image
+      - name: Read published image digest
+        id: digest
+        shell: bash
+        run: |
+          digest=$(cat published-image/image-digest.txt)
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '%s' "$DOCKERHUB_TOKEN" | podman login \
+            --compat-auth-file "$REGISTRY_AUTH_FILE" \
+            docker.io --username pcm0 --password-stdin
       - name: Generate provenance attestation
         uses: actions/attest@v4
         with:
           subject-name: ${{ needs.prepare.outputs.image }}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
           push-to-registry: true

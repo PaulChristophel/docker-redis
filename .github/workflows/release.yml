@@ -1,0 +1,74 @@
+name: Build and publish Redis images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.dockerfile'
+      - '*.sh'
+      - '*.conf'
+      - images.json
+      - scripts/build-image.sh
+      - .github/workflows/release.yml
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.matrix.outputs.image }}
+      platform: ${{ steps.matrix.outputs.platform }}
+      jobs: ${{ steps.matrix.outputs.jobs }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read images.json
+        id: matrix
+        run: |
+          echo "image=$(jq -er '.image' images.json)" >> "$GITHUB_OUTPUT"
+          echo "platform=$(jq -er '.platform' images.json)" >> "$GITHUB_OUTPUT"
+          echo "jobs=$(jq -er '.defaults.build_jobs' images.json)" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(jq -ce '.distributions as $os | {include: [.redis[] as $redis | .variants[] | {redis: $redis, variant: ., base: $os[.os].base}]}' images.json)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Redis ${{ matrix.redis.version }} ${{ matrix.variant.tag }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: printf '%s' "$DOCKERHUB_TOKEN" | podman login docker.io --username pcm0 --password-stdin
+      - name: Build and test image
+        env:
+          REDIS_VERSION: ${{ matrix.redis.version }}
+          VARIANT: ${{ matrix.variant.tag }}
+        run: ./scripts/build-image.sh
+      - name: Publish image
+        id: push
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}:${{ matrix.redis.version }}-${{ matrix.variant.tag }}
+        run: |
+          podman push --digestfile image-digest.txt "$IMAGE"
+          echo "digest=$(cat image-digest.txt)" >> "$GITHUB_OUTPUT"
+      - name: Generate provenance attestation
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ needs.prepare.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

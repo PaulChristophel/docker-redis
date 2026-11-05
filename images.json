@@ -1,0 +1,28 @@
+{
+  "image": "docker.io/pcm0/redis",
+  "platform": "linux/amd64",
+  "defaults": {
+    "build_jobs": 4
+  },
+  "distributions": {
+    "tumbleweed": {
+      "name": "tumbleweed",
+      "version": "20261104",
+      "base": "docker.io/opensuse/tumbleweed:latest@sha256:24631e8a662ce93a4dc6d612f0f4b6d334606d624b157e3f161957de68ce2876"
+    }
+  },
+  "redis": [
+    {
+      "version": "8.10.3",
+      "sha256": "5e0c00ed77f789fb1a4a30f1fbb58a793cc88c41c0f11f0e38e1b4f192991188",
+      "channel": "stable"
+    }
+  ],
+  "variants": [
+    {
+      "dockerfile": "tumbleweed.dockerfile",
+      "tag": "tumbleweed",
+      "os": "tumbleweed"
+    }
+  ]
+}

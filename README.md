@@ -121,3 +121,7 @@ Blocks libraries are selected automatically by the ELF/RPM dependency scan.
 RediSearch still prints its unsupported-openSUSE warning: its upstream package
 checker does not recognize Tumbleweed, so the build uses the independently
 checked toolchain with `IGNORE_MISSING_DEPS=1`.
+
+Autoconf/libtool builds use `LD=ld.lld` (the ELF linker). Only RediSearch
+receives `LD=lld`, because its build script validates that driver name and
+selects it through Clang's `-fuse-ld=lld` option.

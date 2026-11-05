@@ -19,7 +19,7 @@ rust_llvm=$(rustc -vV | sed -n 's/^LLVM version: \([0-9]*\).*/\1/p')
 clang_llvm=$(clang --version | sed -n '1s/.*version \([0-9]*\).*/\1/p')
 test -n "$rust_llvm"
 test "$rust_llvm" = "$clang_llvm"
-ld.lld --version | grep -E "LLD ${rust_llvm}\."
+"${LD:-ld.lld}" --version | grep -E "LLD ${rust_llvm}\."
 llvm-nm --version | grep -E "LLVM version ${rust_llvm}\."
 /usr/bin/python3 -c 'import packaging, ssl, virtualenv'
 python3 -m pip --version

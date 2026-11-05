@@ -19,7 +19,7 @@ build_module() {
     module=$1
     shift
     make -C modules -j"${jobs}" all SUBDIRS="$module" \
-    CC=clang CXX=clang++ LD=lld AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
+    CC=clang CXX=clang++ LD=ld.lld AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm \
     MALLOC=jemalloc BUILD_TLS=yes USE_SYSTEMD=no ENABLE_LTO=-flto \
     LDFLAGS=-fuse-ld=lld LTO=1 IGNORE_MISSING_DEPS=1 \
     REDISEARCH_GENERATE_HEADERS=0 INLINE_LSE_ATOMICS=0 \
@@ -30,7 +30,10 @@ build_module() {
 # Readies builds CC_FLAGS from its own components; setting CFLAGS alone does not
 # enable Blocks. Preserve its includes/defines and extend the library set.
 build_module redisbloom 'CC_FLAGS.opt=-O3 -flto -fblocks' LD_LIBS.ext=BlocksRuntime
-for module in redisearch redisjson redistimeseries; do
+# RediSearch expects the LLVM driver name and adds -fuse-ld=lld itself.
+# Autoconf/libtool dependencies in the other modules need the ELF linker.
+build_module redisearch LD=lld
+for module in redisjson redistimeseries; do
     build_module "$module"
 done
 

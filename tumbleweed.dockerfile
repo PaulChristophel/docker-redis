@@ -35,7 +35,7 @@ RUN llvm_major="$(rustc -vV | sed -n 's/^LLVM version: \([0-9]*\).*/\1/p')" \
       bash coreutils grep sed diffutils procps jq wget bzip2 \
       libffi-devel libxcrypt-devel zlib-ng-compat-devel libdispatch-devel tls "clang${llvm_major}-devel"
 ENV PATH=/opt/build-venv/bin:/opt/llvm-tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm LD=lld
+ENV CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm LD=ld.lld
 ENV CFLAGS=-O3 CXXFLAGS=-O3
 ENV CPATH=/usr/include/block
 ENV VIRTUAL_ENV=/opt/build-venv

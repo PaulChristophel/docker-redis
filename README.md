@@ -127,3 +127,8 @@ checked toolchain with `IGNORE_MISSING_DEPS=1`.
 Autoconf/libtool builds use `LD=ld.lld` (the ELF linker). Only RediSearch
 receives `LD=lld`, because its build script validates that driver name and
 selects it through Clang's `-fuse-ld=lld` option.
+
+RedisBloom and TimeSeries also receive
+`LD_FLAGS.linux=-flto -fuse-ld=lld`. Readies uses `LD_FLAGS` in the final
+compiler-driver link, independently of Autoconf's `LD` and conventional
+`LDFLAGS`; this ensures their LLVM bitcode objects are linked with lld.

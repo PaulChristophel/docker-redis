@@ -29,7 +29,8 @@ build_module() {
 
 # Readies builds CC_FLAGS from its own components; setting CFLAGS alone does not
 # enable Blocks. Preserve its includes/defines and extend the library set.
-build_module redisbloom 'CC_FLAGS.opt=-O3 -flto -fblocks' LD_LIBS.ext=BlocksRuntime
+build_module redisbloom 'CC_FLAGS.opt=-O3 -flto -fblocks' \
+    'LD_FLAGS.linux=-flto -fuse-ld=lld' LD_LIBS.ext=BlocksRuntime
 # RediSearch expects the LLVM driver name and adds -fuse-ld=lld itself.
 # Autoconf/libtool dependencies in the other modules need the ELF linker.
 build_module redisearch LD=lld
@@ -37,6 +38,7 @@ build_module redisjson
 # TimeSeries uses the same Clang Blocks cleanup macros. Command-line Readies
 # extension libraries must retain its OpenSSL dependencies as well.
 build_module redistimeseries 'CC_FLAGS.opt=-O3 -flto -fblocks' \
+    'LD_FLAGS.linux=-flto -fuse-ld=lld' \
     'LD_LIBS.ext=ssl crypto BlocksRuntime'
 
 for module in redisbloom/redisbloom redisearch/redisearch redisjson/rejson redistimeseries/redistimeseries; do

@@ -33,12 +33,18 @@ RUN zypper --non-interactive --gpg-auto-import-keys install --no-recommends \
 RUN llvm_major="$(rustc -vV | sed -n 's/^LLVM version: \([0-9]*\).*/\1/p')" \
  && zypper --non-interactive --gpg-auto-import-keys install --no-recommends \
       bash coreutils grep sed diffutils procps jq wget bzip2 \
-      libffi-devel libxcrypt-devel zlib-ng-compat-devel libdispatch-devel tls "clang${llvm_major}-devel"
+      libffi-devel libxcrypt-devel zlib-ng-compat-devel libdispatch-devel tcl-devel "clang${llvm_major}-devel"
 ENV PATH=/opt/build-venv/bin:/opt/llvm-tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib NM=llvm-nm LD=ld.lld
 ENV CFLAGS=-O3 CXXFLAGS=-O3
 ENV CPATH=/usr/include/block
 ENV VIRTUAL_ENV=/opt/build-venv
+ENV TCLLIBPATH=/opt/redis-test-tcl/lib
+ARG TCLTLS_VERSION=1.7.22
+ARG TCLTLS_SHA256=e84e2b7a275ec82c4aaa9d1b1f9786dbe4358c815e917539ffe7f667ff4bc3b4
+COPY install-test-tcltls.sh /opt/build/install-test-tcltls.sh
+RUN TCLTLS_VERSION="${TCLTLS_VERSION}" TCLTLS_SHA256="${TCLTLS_SHA256}" \
+      BUILD_JOBS="${BUILD_JOBS}" sh /opt/build/install-test-tcltls.sh
 COPY check-build-deps.sh /opt/build/check-build-deps.sh
 RUN sh /opt/build/check-build-deps.sh
 

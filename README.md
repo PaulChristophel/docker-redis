@@ -132,3 +132,13 @@ RedisBloom and TimeSeries also receive
 `LD_FLAGS.linux=-flto -fuse-ld=lld`. Readies uses `LD_FLAGS` in the final
 compiler-driver link, independently of Autoconf's `LD` and conventional
 `LDFLAGS`; this ensures their LLVM bitcode objects are linked with lld.
+
+## Tcl client used by TLS tests
+
+Redis 8.10 requires TclTLS 1.x in its test harness (`package require tls 1.6`).
+Tumbleweed's `tls` RPM currently supplies TclTLS 2.x, which Tcl rejects for that
+requirement. The builder compiles TclTLS 1.7.22 from a checksum-pinned original
+source archive mirrored by Debian and sets `TCLLIBPATH` to its isolated prefix.
+The version and SHA-256 are in `images.json` defaults. The preflight checks the
+exact `tls 1.6` requirement before building Redis. This client extension is
+builder-only; Redis's runtime OpenSSL TLS configuration is unchanged.

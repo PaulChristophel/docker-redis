@@ -30,6 +30,8 @@ base=$(jq -er --arg os "$os" '.distributions[$os].base' "$manifest")
 platform=$(jq -er '.platform' "$manifest")
 image=$(jq -er '.image' "$manifest")
 jobs=${BUILD_JOBS:-$(jq -er '.defaults.build_jobs' "$manifest")}
+tcltls_version=$(jq -er '.defaults.tcltls_version' "$manifest")
+tcltls_checksum=$(jq -er '.defaults.tcltls_sha256 | select(test("^[0-9a-f]{64}$"))' "$manifest")
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo 'BUILD_JOBS must be a positive integer' >&2; exit 1; }
 test -f "${repo_dir}/${dockerfile}"
 command=("${PODMAN:-podman}" build "--platform=${platform}"
@@ -38,6 +40,8 @@ command=("${PODMAN:-podman}" build "--platform=${platform}"
     --build-arg "REDIS_VERSION=${version}"
     --build-arg "REDIS_SHA256=${checksum}"
     --build-arg "BUILD_JOBS=${jobs}"
+    --build-arg "TCLTLS_VERSION=${tcltls_version}"
+    --build-arg "TCLTLS_SHA256=${tcltls_checksum}"
     --build-arg "IMAGE_REPOSITORY=${image}"
     --build-arg "IMAGE_REVISION=$(git -C "$repo_dir" rev-parse --verify HEAD 2>/dev/null || printf unknown)"
     --build-arg "IMAGE_CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)"

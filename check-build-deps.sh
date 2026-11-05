@@ -25,7 +25,7 @@ llvm-nm --version | grep -E "LLVM version ${rust_llvm}\."
 python3 -m pip --version
 # Tcl, rather than the shell, expands $result.
 # shellcheck disable=SC2016
-printf 'if {[catch {package require tls} result]} {puts stderr $result; exit 1}; puts $result\n' | tclsh
+printf 'if {[catch {package require tls 1.6} result]} {puts stderr $result; exit 1}; puts $result\n' | tclsh
 pkg-config --exists openssl libffi zlib
 cmake --version
 

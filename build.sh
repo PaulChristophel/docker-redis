@@ -33,9 +33,11 @@ build_module redisbloom 'CC_FLAGS.opt=-O3 -flto -fblocks' LD_LIBS.ext=BlocksRunt
 # RediSearch expects the LLVM driver name and adds -fuse-ld=lld itself.
 # Autoconf/libtool dependencies in the other modules need the ELF linker.
 build_module redisearch LD=lld
-for module in redisjson redistimeseries; do
-    build_module "$module"
-done
+build_module redisjson
+# TimeSeries uses the same Clang Blocks cleanup macros. Command-line Readies
+# extension libraries must retain its OpenSSL dependencies as well.
+build_module redistimeseries 'CC_FLAGS.opt=-O3 -flto -fblocks' \
+    'LD_LIBS.ext=ssl crypto BlocksRuntime'
 
 for module in redisbloom/redisbloom redisearch/redisearch redisjson/rejson redistimeseries/redistimeseries; do
     test -s "modules/${module}.so"

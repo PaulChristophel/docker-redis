@@ -1,13 +1,13 @@
 # Redis source image for Podman
 
 Redis 8.10.3 with jemalloc, Clang/LLVM LTO, TLS, Search, JSON, Bloom, and
-TimeSeries. The final `scratch` image contains `redis-server`, the four module
+TimeSeries. The final `scratch` image contains `redis-server`, `redis-cli`, the four module
 libraries, their package-managed runtime dependencies, configuration, licenses,
 and writable `/data` and `/tmp` directories. `zypper --installroot` installs the
 packages owning the ELF dependencies plus `openSUSE-release`, with recommendations
 disabled. OS identity files and the runtime RPM database are retained for scanners.
 Required OS dependencies can include Bash and BusyBox; the image does not contain
-zypper, compilers, Python, or `redis-cli`. Individual library files are not copied.
+zypper, compilers, or Python. Individual library files are not copied.
 
 ## Build
 
@@ -79,8 +79,7 @@ the TLS example disables that plaintext port. Mount a custom configuration or
 append Redis command-line options to change behavior. Keep the four `loadmodule`
 directives in custom configurations if you want all modules loaded.
 
-`redis-cli` is intentionally builder-only. Use an external client for operational
-checks. Redis receives SIGTERM directly as PID 1 and handles graceful shutdown.
+`redis-cli` is included for Kubernetes exec probes and operational checks. Redis receives SIGTERM directly as PID 1 and handles graceful shutdown.
 
 ## Inspect
 

@@ -2,16 +2,16 @@
 set -eu
 mkdir -p /rootfs/usr/local/bin /rootfs/usr/local/lib/redis/modules \
     /rootfs/etc/redis /rootfs/data /rootfs/tmp
-install -m 0755 src/redis-server /rootfs/usr/local/bin/redis-server
+install -m 0755 src/redis-server src/redis-cli /rootfs/usr/local/bin/
 for module in redisbloom/redisbloom redisearch/redisearch redisjson/rejson redistimeseries/redistimeseries; do
     install -m 0755 "modules/${module}.so" /rootfs/usr/local/lib/redis/modules/
 done
-strip --strip-unneeded /rootfs/usr/local/bin/redis-server /rootfs/usr/local/lib/redis/modules/*.so
+strip --strip-unneeded /rootfs/usr/local/bin/redis-server /rootfs/usr/local/bin/redis-cli /rootfs/usr/local/lib/redis/modules/*.so
 
 # Identify package owners of the complete ELF dependency closure. Zypper, not
 # this script, installs the runtime libraries and their package dependencies.
 : > /tmp/runtime-libraries
-for binary in /rootfs/usr/local/bin/redis-server /rootfs/usr/local/lib/redis/modules/*.so; do
+for binary in /rootfs/usr/local/bin/redis-server /rootfs/usr/local/bin/redis-cli /rootfs/usr/local/lib/redis/modules/*.so; do
     ldd "${binary}" > /tmp/ldd-output
     if grep -q 'not found' /tmp/ldd-output; then
         cat /tmp/ldd-output >&2
@@ -44,6 +44,7 @@ interpreter=$(readelf -l /rootfs/usr/local/bin/redis-server |
     sed -n 's/.*Requesting program interpreter: \([^]]*\)].*/\1/p')
 test -n "$interpreter"
 chroot /rootfs "$interpreter" --list /usr/local/bin/redis-server
+chroot /rootfs "$interpreter" --list /usr/local/bin/redis-cli
 for module in /rootfs/usr/local/lib/redis/modules/*.so; do
     chroot /rootfs "$interpreter" --list "${module#/rootfs}"
 done

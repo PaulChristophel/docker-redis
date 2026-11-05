@@ -1,7 +1,6 @@
 #!/bin/sh
 set -eu
-# Run the exact scratch filesystem as its final uid. Client/test tools stay
-# outside the chroot and never enter the delivered image.
+# Run the delivered server and CLI inside the exact scratch filesystem as its final uid.
 mkdir -p /rootfs/tmp/smoke
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
     -subj /CN=localhost -addext subjectAltName=DNS:localhost \
@@ -14,8 +13,8 @@ chroot --userspec=999:999 /rootfs /usr/local/bin/redis-server \
 server_pid=$!
 trap 'kill "$server_pid" 2>/dev/null || true' EXIT HUP INT TERM
 cli() {
-    /usr/src/redis/src/redis-cli --tls -h localhost -p 16380 \
-        --cacert /rootfs/tmp/smoke/cert.pem --raw "$@"
+    chroot --userspec=999:999 /rootfs /usr/local/bin/redis-cli --tls -h localhost -p 16380 \
+        --cacert /tmp/smoke/cert.pem --raw "$@"
 }
 ready=no
 for _attempt in $(seq 1 60); do
@@ -41,4 +40,4 @@ rpm --root /rootfs -q openSUSE-release
 test -s /rootfs/usr/share/redis/runtime-packages.txt
 test ! -e /rootfs/usr/bin/zypper
 test ! -e /rootfs/usr/bin/python3
-test ! -e /rootfs/usr/local/bin/redis-cli
+test -x /rootfs/usr/local/bin/redis-cli

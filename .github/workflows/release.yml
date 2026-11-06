@@ -74,7 +74,11 @@ jobs:
         env:
           IMAGE: ${{ needs.prepare.outputs.image }}:${{ matrix.redis.version }}-${{ matrix.variant.tag }}
         run: |
+          sha_image="${IMAGE}-sha-${GITHUB_SHA:0:7}"
+          podman tag "$IMAGE" "$sha_image"
+          podman push --digestfile image-sha-digest.txt "$sha_image"
           podman push --digestfile image-digest.txt "$IMAGE"
+          cmp image-digest.txt image-sha-digest.txt
           echo "digest=$(cat image-digest.txt)" >> "$GITHUB_OUTPUT"
       - name: Save published image digest
         uses: actions/upload-artifact@v4

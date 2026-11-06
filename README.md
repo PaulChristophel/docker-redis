@@ -169,3 +169,9 @@ python3 scripts/update_redis_releases.py --check
 Exit codes are 0 for current pins, 1 for available updates, and 2 for upstream or
 pin-validation failures. Omitting `--check` writes the updated manifest only after
 all lookups succeed. The updater does not edit Dockerfile defaults.
+
+Published images have both a version/variant tag, such as
+`8.10.3-tumbleweed`, and a repository-commit tag, such as
+`8.10.3-tumbleweed-sha-9097f6e`. Both tags refer to the same image digest;
+the SHA suffix uses the first seven characters of the image repository's build
+commit, matching docker-pgbouncer.

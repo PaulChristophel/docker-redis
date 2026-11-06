@@ -1,0 +1,50 @@
+name: Attest an existing Redis image
+
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: 'Published image digest (sha256:...)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read image and validate digest
+        id: image
+        env:
+          DIGEST: ${{ inputs.digest }}
+        shell: bash
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "name=$(jq -er '.image' images.json)" >> "$GITHUB_OUTPUT"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+      - name: Set registry credential paths
+        shell: bash
+        run: |
+          echo "DOCKER_CONFIG=$HOME/.docker" >> "$GITHUB_ENV"
+          echo "REGISTRY_AUTH_FILE=$HOME/.docker/config.json" >> "$GITHUB_ENV"
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '%s' "$DOCKERHUB_TOKEN" | podman login \
+            --compat-auth-file "$REGISTRY_AUTH_FILE" \
+            docker.io --username pcm0 --password-stdin
+      # This records the recovery workflow as the attestation producer.
+      # It does not recreate the original build workflow's provenance identity.
+      - name: Attest published image
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true

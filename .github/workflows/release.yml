@@ -50,11 +50,12 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
+      # actions/attest's registry client reads ~/.docker/config.json directly.
       - name: Set registry credential paths
         shell: bash
         run: |
-          echo "DOCKER_CONFIG=$RUNNER_TEMP/redis-registry-auth" >> "$GITHUB_ENV"
-          echo "REGISTRY_AUTH_FILE=$RUNNER_TEMP/redis-registry-auth/config.json" >> "$GITHUB_ENV"
+          echo "DOCKER_CONFIG=$HOME/.docker" >> "$GITHUB_ENV"
+          echo "REGISTRY_AUTH_FILE=$HOME/.docker/config.json" >> "$GITHUB_ENV"
       - name: Log in to Docker Hub
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -102,11 +103,12 @@ jobs:
           digest=$(cat published-image/image-digest.txt)
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      # actions/attest's registry client reads ~/.docker/config.json directly.
       - name: Set registry credential paths
         shell: bash
         run: |
-          echo "DOCKER_CONFIG=$RUNNER_TEMP/redis-registry-auth" >> "$GITHUB_ENV"
-          echo "REGISTRY_AUTH_FILE=$RUNNER_TEMP/redis-registry-auth/config.json" >> "$GITHUB_ENV"
+          echo "DOCKER_CONFIG=$HOME/.docker" >> "$GITHUB_ENV"
+          echo "REGISTRY_AUTH_FILE=$HOME/.docker/config.json" >> "$GITHUB_ENV"
       - name: Log in to Docker Hub
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

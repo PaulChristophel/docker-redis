@@ -1,0 +1,63 @@
+name: Update Redis image configuration
+
+on:
+  schedule:
+    - cron: "53 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-redis-image-configuration
+  cancel-in-progress: false
+
+jobs:
+  update-redis-releases:
+    name: Update stable Redis releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Test configuration updater
+        run: python3 -m unittest discover -s scripts -p 'test_update_redis_releases.py'
+
+      - name: Update Redis source releases, checksums, and base images
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/update_redis_releases.py
+
+      - name: Create configuration update pull request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          add-paths: images.json
+          branch: automation/update-redis-releases
+          commit-message: "chore: update Redis source releases"
+          title: "chore: update Redis source releases"
+          body: |
+            Updates stable Redis release versions and their official
+            redis-full.tar.gz SHA-256 pins from official GitHub release assets,
+            plus every configured OCI base-image digest in `images.json`.
+            Redis stays within each configured major/minor series; Tumbleweed's
+            date is refreshed only when its base digest changes.
+
+            Preview releases, new Redis release series, and the TclTLS test
+            dependency remain managed separately.
+          delete-branch: true
+
+      - name: Approve and enable automatic merge
+        if: steps.create-pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.PR_APPROVER_TOKEN }}
+          PR_NUMBER: ${{ steps.create-pr.outputs.pull-request-number }}
+        run: |
+          gh pr review "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --approve
+          gh pr merge "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --squash \
+            --auto

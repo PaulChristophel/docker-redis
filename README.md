@@ -141,3 +141,31 @@ source archive mirrored by Debian and sets `TCLLIBPATH` to its isolated prefix.
 The version and SHA-256 are in `images.json` defaults. The preflight checks the
 exact `tls 1.6` requirement before building Redis. This client extension is
 builder-only; Redis's runtime OpenSSL TLS configuration is unchanged.
+
+## Automated configuration updates
+
+`.github/workflows/update-images.yml` runs daily at 05:53 UTC and can also be
+started manually. It opens or refreshes one PR changing only `images.json`:
+
+- Stable Redis entries advance to the latest patch in their configured major/minor
+  series, using the official Redis GitHub release's `redis-full.tar.gz` SHA-256.
+  Prereleases, downgrades, and new major/minor series are excluded. Missing archive
+  digests fail the update instead of substituting a different source archive.
+- Each base tag is resolved to its current OCI manifest digest. Tumbleweed's date
+  records the UTC refresh date only when its base digest changes.
+- TclTLS stays pinned separately for test-harness compatibility.
+
+Like docker-postgresql, approval and squash auto-merge use `PR_APPROVER_TOKEN`.
+Configure that secret with an account allowed to approve and merge PRs, enable
+Actions PR creation, and allow auto-merge in the repository. Repository branch
+rules still apply. Merging `images.json` changes triggers the release workflow.
+
+Run a read-only check locally with Python 3:
+
+```sh
+python3 scripts/update_redis_releases.py --check
+```
+
+Exit codes are 0 for current pins, 1 for available updates, and 2 for upstream or
+pin-validation failures. Omitting `--check` writes the updated manifest only after
+all lookups succeed. The updater does not edit Dockerfile defaults.

@@ -70,17 +70,37 @@ FROM scratch
 ARG BASE
 ARG REDIS_VERSION=8.10.3
 ARG IMAGE_AUTHORS="Paul Christophel <pmartin@gatech.edu>"
+ARG IMAGE_VENDOR="Paul Christophel"
+ARG IMAGE_OWNER="Paul Christophel <pmartin@gatech.edu>"
+ARG IMAGE_SOURCE="https://github.com/PaulChristophel/docker-redis"
+ARG IMAGE_URL="https://hub.docker.com/r/pcm0/redis"
+ARG IMAGE_DOCUMENTATION="https://github.com/PaulChristophel/docker-redis#readme"
+ARG IMAGE_LICENSES="AGPL-3.0-only OR LicenseRef-RSALv2 OR SSPL-1.0"
+ARG IMAGE_DISTRIBUTION=tumbleweed
+ARG IMAGE_DISTRIBUTION_VERSION=unknown
+ARG IMAGE_BASE_DIGEST=unknown
 ARG IMAGE_REPOSITORY=docker.io/pcm0/redis
 ARG IMAGE_REVISION=unknown
 ARG IMAGE_CREATED=1970-01-01T00:00:00Z
 LABEL org.opencontainers.image.title="Redis with TLS and bundled modules on openSUSE Tumbleweed" \
-      org.opencontainers.image.description="Redis server, Search, JSON, Bloom, TimeSeries, and required runtime libraries only." \
+      org.opencontainers.image.description="Redis server and CLI with TLS, jemalloc, Search, JSON, Bloom, TimeSeries, and package-managed runtime dependencies." \
       org.opencontainers.image.authors="${IMAGE_AUTHORS}" \
       org.opencontainers.image.version="${REDIS_VERSION}" \
       org.opencontainers.image.ref.name="${IMAGE_REPOSITORY}" \
       org.opencontainers.image.base.name="${BASE}" \
       org.opencontainers.image.revision="${IMAGE_REVISION}" \
-      org.opencontainers.image.created="${IMAGE_CREATED}"
+      org.opencontainers.image.created="${IMAGE_CREATED}" \
+      org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
+      org.opencontainers.image.source="${IMAGE_SOURCE}" \
+      org.opencontainers.image.url="${IMAGE_URL}" \
+      org.opencontainers.image.documentation="${IMAGE_DOCUMENTATION}" \
+      org.opencontainers.image.licenses="${IMAGE_LICENSES}" \
+      org.opencontainers.image.base.digest="${IMAGE_BASE_DIGEST}" \
+      org.opencontainers.image.component.redis.version="${REDIS_VERSION}" \
+      edu.gatech.image.owner="${IMAGE_OWNER}" \
+      edu.gatech.image.repository="${IMAGE_REPOSITORY}" \
+      edu.gatech.image.os.distribution="${IMAGE_DISTRIBUTION}" \
+      edu.gatech.image.os.version="${IMAGE_DISTRIBUTION_VERSION}"
 COPY --from=builder /rootfs/ /
 USER 999:999
 WORKDIR /data

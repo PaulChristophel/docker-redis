@@ -27,6 +27,8 @@ variant_tag=$(jq -er '.tag' <<< "$variant")
 dockerfile=$(jq -er '.dockerfile' <<< "$variant")
 os=$(jq -er '.os' <<< "$variant")
 base=$(jq -er --arg os "$os" '.distributions[$os].base' "$manifest")
+distribution=$(jq -er --arg os "$os" '.distributions[$os].name' "$manifest")
+distribution_version=$(jq -er --arg os "$os" '.distributions[$os].version' "$manifest")
 platform=$(jq -er '.platform' "$manifest")
 image=$(jq -er '.image' "$manifest")
 jobs=${BUILD_JOBS:-$(jq -er '.defaults.build_jobs' "$manifest")}
@@ -37,6 +39,9 @@ test -f "${repo_dir}/${dockerfile}"
 command=("${PODMAN:-podman}" build "--platform=${platform}"
     -f "${repo_dir}/${dockerfile}"
     --build-arg "BASE=${base}"
+    --build-arg "IMAGE_BASE_DIGEST=${base##*@}"
+    --build-arg "IMAGE_DISTRIBUTION=${distribution}"
+    --build-arg "IMAGE_DISTRIBUTION_VERSION=${distribution_version}"
     --build-arg "REDIS_VERSION=${version}"
     --build-arg "REDIS_SHA256=${checksum}"
     --build-arg "BUILD_JOBS=${jobs}"

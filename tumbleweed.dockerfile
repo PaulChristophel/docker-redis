@@ -51,10 +51,12 @@ RUN sh /opt/build/check-build-deps.sh
 FROM build-dependencies AS builder
 ARG REDIS_VERSION=8.10.3
 ARG REDIS_SHA256=5e0c00ed77f789fb1a4a30f1fbb58a793cc88c41c0f11f0e38e1b4f192991188
+# Release asset name; Redis 8.12+ versions it (redis-full-<version>.tar.gz).
+ARG REDIS_ASSET=redis-full.tar.gz
 ARG BUILD_JOBS=4
 WORKDIR /usr/src/redis
 RUN curl --fail --location --retry 3 \
-      "https://github.com/redis/redis/releases/download/${REDIS_VERSION}/redis-full.tar.gz" \
+      "https://github.com/redis/redis/releases/download/${REDIS_VERSION}/${REDIS_ASSET}" \
       -o /tmp/redis.tar.gz \
  && echo "${REDIS_SHA256}  /tmp/redis.tar.gz" | sha256sum -c - \
  && tar -xzf /tmp/redis.tar.gz --strip-components=1 \

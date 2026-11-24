@@ -38,6 +38,27 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(config["redis"][1]["version"], "9.0.0-rc1")
         self.assertEqual(updater.update_releases(config, releases), [])
 
+    def test_versioned_asset_name(self):
+        """Pin Redis 8.12+'s versioned full archive and record its name."""
+        config = {
+            "redis": [{"version": "8.12.0", "sha256": "old", "channel": "stable"}]
+        }
+        releases = [
+            {
+                "tag_name": "8.12.1",
+                "assets": [
+                    {"name": "redis-full.tar.gz", "digest": "sha256:" + "b" * 64},
+                    {
+                        "name": "redis-full-8.12.1.tar.gz",
+                        "digest": "sha256:" + "c" * 64,
+                    },
+                ],
+            }
+        ]
+        self.assertEqual(len(updater.update_releases(config, releases)), 1)
+        self.assertEqual(config["redis"][0]["sha256"], "c" * 64)
+        self.assertEqual(config["redis"][0]["asset"], "redis-full-8.12.1.tar.gz")
+
     def test_missing_digest_does_not_change_entry(self):
         """Reject a release without the exact full-archive checksum."""
         config = {"redis": [{"version": "8.10.3", "channel": "stable"}]}

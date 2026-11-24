@@ -243,9 +243,14 @@ def update_releases(
         parts, release = candidates[old_parts[:2]]
         if parts <= old_parts:
             continue
-        assets = [
-            a for a in release.get("assets", []) if a["name"] == "redis-full.tar.gz"
-        ]
+        # Redis 8.12+ publishes redis-full-<version>.tar.gz; older releases
+        # publish redis-full.tar.gz. Prefer the versioned name when present.
+        names = (f"redis-full-{release['tag_name']}.tar.gz", "redis-full.tar.gz")
+        assets = []
+        for name in names:
+            assets = [a for a in release.get("assets", []) if a["name"] == name]
+            if assets:
+                break
         if len(assets) != 1 or not re.fullmatch(
             r"sha256:[0-9a-f]{64}", assets[0].get("digest") or ""
         ):
@@ -254,6 +259,7 @@ def update_releases(
             )
         entry["version"] = release["tag_name"]
         entry["sha256"] = assets[0]["digest"].removeprefix("sha256:")
+        entry["asset"] = assets[0]["name"]
         changes.append(f"Redis: {old_version} -> {entry['version']}")
     return changes
 

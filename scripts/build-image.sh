@@ -23,6 +23,7 @@ variant=$(jq -ce --arg tag "${VARIANT:-}" '
     end | select(. != null)' "$manifest")
 version=$(jq -er '.version' <<< "$release")
 checksum=$(jq -er '.sha256 | select(test("^[0-9a-f]{64}$"))' <<< "$release")
+asset=$(jq -er '.asset // "redis-full.tar.gz" | select(test("^redis-full[-.0-9a-z]*\\.tar\\.gz$"))' <<< "$release")
 variant_tag=$(jq -er '.tag' <<< "$variant")
 dockerfile=$(jq -er '.dockerfile' <<< "$variant")
 os=$(jq -er '.os' <<< "$variant")
@@ -44,6 +45,7 @@ command=("${PODMAN:-podman}" build "--platform=${platform}"
     --build-arg "IMAGE_DISTRIBUTION_VERSION=${distribution_version}"
     --build-arg "REDIS_VERSION=${version}"
     --build-arg "REDIS_SHA256=${checksum}"
+    --build-arg "REDIS_ASSET=${asset}"
     --build-arg "BUILD_JOBS=${jobs}"
     --build-arg "TCLTLS_VERSION=${tcltls_version}"
     --build-arg "TCLTLS_SHA256=${tcltls_checksum}"

@@ -148,7 +148,9 @@ builder-only; Redis's runtime OpenSSL TLS configuration is unchanged.
 started manually. It opens or refreshes one PR changing only `images.json`:
 
 - Stable Redis entries advance to the latest patch in their configured major/minor
-  series, using the official Redis GitHub release's `redis-full.tar.gz` SHA-256.
+  series, using the official Redis GitHub release's full-source archive SHA-256
+  (`redis-full-<version>.tar.gz` from 8.12 on, `redis-full.tar.gz` before). The
+  chosen file name is recorded as each entry's `asset`.
   Prereleases, downgrades, and new major/minor series are excluded. Missing archive
   digests fail the update instead of substituting a different source archive.
 - Each base tag is resolved to its current OCI manifest digest. Tumbleweed's date
